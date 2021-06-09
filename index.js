@@ -8,33 +8,26 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const games = [{id: '', gameWs: null, clients: []}];
+const games = {'abc' : { gameWs: null, clients: []}};
+
+const getRandomString = () => {
+  return Math.random().toString(36).substr(2, 5);
+}
 
 
 const sendMessageToGame = (message, gameId) => {
-  console.log(`Send to game Message: ${message}, ID: ${gameId}`)
 
-  const gameObj = games.filter(game => game.id === gameId)[0];
 
-  if(!gameObj){
-    console.log('Game obj empty')
-    return;
-  }
-
-  gameObj.gameWs.send(message);
+  games[gameId].gameWs.send(message);
 
 }
 
 const sendMessageToClients = (message, gameId) => {
-  const gameObj = games.filter(game => game.id === gameId)[0];
   console.log(`Send to clients Message: ${message}, ID: ${gameId}`)
 
 
-  if(!gameObj){
-    return;
-  }
 
-  gameObj.clients.forEach(client => {
+  games[gameId].clients.forEach(client => {
     client.send(message);
   })
   return;
@@ -42,6 +35,7 @@ const sendMessageToClients = (message, gameId) => {
 }
 
 const handleGameConnection = (ws) => {
+  ws.send(`Game connected. Your Gamer Code: ${ws.gameId}`);
   ws.on('message', (data) => {
     sendMessageToClients(data, ws.gameId);
   })
@@ -61,9 +55,11 @@ wss.on('connection', (ws, req) => {
 
   console.log(`Connected. Paths: ${paths}`)
 
-  if(!type || !gameId){
-    ws.send('Client Type and Game Id must be specified.')
-    console.log('Client type and gameId not specified.')
+  
+
+  if(!type){
+    ws.send('Client Type must be specified.')
+    console.log('Client type  not specified.')
     ws.close();
     return;
   }
@@ -78,30 +74,36 @@ wss.on('connection', (ws, req) => {
     }
     
     ws.gameId = gameId;
-    ws.send('Client onnected succesfully');
+    ws.send('Client connected succesfully');
     console.log('Client Games', games);
 
-    const game = games.filter(game => game.id === gameId)[0];
-    game.clients.push(ws);
+    games[gameId].clients.push(ws);
     handleClientConnection(ws);
   } else if(type === 'game'){
-    if(checkIfGameIdExists(gameId)){
-      console.log('game ID already exists');
 
-      ws.send('Cannot connect to already existing game Id. Try another');
+    if(!gameId){
+      console.log('No game Id, creating new one');
+      const newGameId = getRandomString();
+      ws.gameId = newGameId;
+      games[newGameId] = {gameWs: ws, clients: []};
+      handleGameConnection(ws);
+    }
+    else if(checkIfGameIdExists(gameId)){
+      console.log('game ID already exists');
+      ws.gameId = gameId;
+      games[gameId].gameWs = ws;
+      ws.send('Headset connected to existing game');
+      handleGameConnection(ws);
+    } else {
+      console.log('Game Id does not exist anymore');
+      ws.send('Game Id does not exist anymore.')
       ws.close();
       return;
     }
 
-    ws.on('close', (ws, req) => {
-      console.log('game deleted');
-      console.log(games);
-      deleteGame(gameId);
-    })
-    games.push({id: gameId, gameWs: ws, clients: []})
-    console.log(games)
-    ws.gameId = gameId;
-    handleGameConnection(ws);
+    
+    
+    
   } else {
     ws.send('Invalid client type. Must be either game or client')
     console.log('Invalid client type');
@@ -114,22 +116,15 @@ wss.on('connection', (ws, req) => {
 });
 
 const checkIfGameIdExists = (gameId) => {
-  games.forEach(game => console.log(game.id))
-  console.log(gameId)
-  const existingGame = games.filter(game => game.id === gameId)[0];
-
-  if(!existingGame){
+  
+  if(!games[gameId]) {
     return false;
   }
 
   return true;
 }
 
-const deleteGame = (gameId) => {
-  const index = games.findIndex(game => game.id === gameId);
-  games.splice(index, 1);
-  return;
-}
+
 
 
 console.log('Server listening on port 8080')
