@@ -38,7 +38,7 @@ const sendWsMessage = (ws, message, type) => {
 }
 
 const handleGameConnection = (ws) => {
-  sendWsMessage(ws,`Game connected. Your Gamer Code: ${ws.gameId}`, 'config' );
+  sendWsMessage(ws,`${ws.gameId}`, 'gameCode' );
   ws.on('message', (data) => {
     sendMessageToClients(data, ws.gameId);
   })
