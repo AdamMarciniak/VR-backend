@@ -8,6 +8,12 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
+function noop() {}
+
+const heartbeat = () => {
+  this.isAlive = true;
+}
+
 const games = {'abc' : { gameWs: null, clients: []}};
 
 const getRandomString = () => {
@@ -24,8 +30,6 @@ const sendMessageToGame = (message, gameId) => {
 const sendMessageToClients = (message, gameId) => {
   console.log(`Send to clients Message: ${message}, ID: ${gameId}`)
 
-
-
   games[gameId].clients.forEach(client => {
     sendWsMessage(client, message, 'data');
   })
@@ -39,7 +43,7 @@ const sendWsMessage = (ws, message, type) => {
 }
 
 const handleGameConnection = (ws) => {
-  sendWsMessage(ws,`${ws.gameId}`, 'gameCode' );
+  sendWsMessage(ws,ws.gameId, 'gameCode' );
   ws.on('message', (data) => {
     sendMessageToClients(data, ws.gameId);
   })
@@ -52,6 +56,9 @@ const handleClientConnection = (ws) => {
 }
 
 wss.on('connection', (ws, req) => {
+
+  ws.isAlive = true;
+  ws.on('pong', heartbeat);
 
   const paths = req.url.split('/');
   const type = paths[1];
@@ -114,9 +121,19 @@ wss.on('connection', (ws, req) => {
 
   }
 
-  
+});
 
-  
+const interval = setInterval(function ping() {
+  wss.clients.forEach(function each(ws) {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping(noop);
+  });
+}, 30000);
+
+wss.on('close', function close() {
+  clearInterval(interval);
 });
 
 const checkIfGameIdExists = (gameId) => {
