@@ -17,8 +17,7 @@ const getRandomString = () => {
 
 const sendMessageToGame = (message, gameId) => {
 
-
-  games[gameId].gameWs.send(message);
+  sendWsMessage(games[gameId].gameWs, message, 'data');
 
 }
 
@@ -28,14 +27,18 @@ const sendMessageToClients = (message, gameId) => {
 
 
   games[gameId].clients.forEach(client => {
-    client.send(message);
+    sendWsMessage(client, message, 'data');
   })
   return;
 
 }
 
+const sendWsMessage = (ws, message, type) => {
+  ws.send(`{type: ${type}, message: ${message}}`)
+}
+
 const handleGameConnection = (ws) => {
-  ws.send(`Game connected. Your Gamer Code: ${ws.gameId}`);
+  sendWsMessage(ws,`Game connected. Your Gamer Code: ${ws.gameId}`, 'config' );
   ws.on('message', (data) => {
     sendMessageToClients(data, ws.gameId);
   })
@@ -58,7 +61,7 @@ wss.on('connection', (ws, req) => {
   
 
   if(!type){
-    ws.send('Client Type must be specified.')
+    sendWsMessage(ws, `client type must be specified. Example: ws://IP:8080/CLIENT_TYPE/GAME_ID `, 'config' )
     console.log('Client type  not specified.')
     ws.close();
     return;
@@ -68,13 +71,13 @@ wss.on('connection', (ws, req) => {
   if(type === 'client'){
     if(!checkIfGameIdExists(gameId)){
       console.log('game id does not exist');
-      ws.send('Game ID does not exist. Please start game from headset first');
+      sendWsMessage(ws, 'Game ID does not exist. Please start game from headset first', 'config');
       ws.close();
       return;
     }
     
     ws.gameId = gameId;
-    ws.send('Client connected succesfully');
+    sendWsMessage(ws, 'Client connected succesfully', 'config');
     console.log('Client Games', games);
 
     games[gameId].clients.push(ws);
@@ -92,11 +95,11 @@ wss.on('connection', (ws, req) => {
       console.log('game ID already exists');
       ws.gameId = gameId;
       games[gameId].gameWs = ws;
-      ws.send('Headset connected to existing game');
+      sendWsMessage(ws, 'Headset connected to existing game', 'config');
       handleGameConnection(ws);
     } else {
       console.log('Game Id does not exist anymore');
-      ws.send('Game Id does not exist anymore.')
+      sendWsMessage(ws, 'Game Id does not exist anymore.', 'config');
       ws.close();
       return;
     }
@@ -105,7 +108,7 @@ wss.on('connection', (ws, req) => {
     
     
   } else {
-    ws.send('Invalid client type. Must be either game or client')
+    sendWsMessage(ws, `Invalid client type. Must be either 'game' or 'client'`, 'config');
     console.log('Invalid client type');
 
   }
