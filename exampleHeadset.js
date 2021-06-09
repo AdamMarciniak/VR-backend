@@ -10,23 +10,13 @@ ws.on('open', function open() {
 
 
 ws.on('message', (msg) => {
-console.log(msg);
-let parsed;
-try{
-    parsed = JSON.parse(msg);
-    console.log(parsed);
-} catch (e) {
-    console.log(e)
-    return
-}
-
+const parsed = JSON.parse(msg);
 
   if(parsed.type === 'config'){
   }
 
   if(parsed.type === 'gameCode'){
     gameCode = parsed.message;
-    console.log('Got gamecode')
   }
 
   if(parsed.type === 'data'){
@@ -34,3 +24,9 @@ try{
     // Do stuff with the game state object or whatever
   }
 });
+
+const sendDataToClients = (data) => {
+
+    ws.send(data);
+
+}

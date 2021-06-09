@@ -1,0 +1,35 @@
+<html>
+
+<head>
+
+</head>
+
+
+<body>
+
+</body>
+
+
+  <script>
+
+    const gameCode = 123;
+    const webSocket = new WebSocket(`ws://54.185.14.55:8080/client/${gameCode}`);
+
+    webSocket.onopen = (event) => {
+      console.log('Connection succesful')
+    };
+
+    webSocket.onmessage = (event) => {
+      console.log(event.data);
+      // Do stuff with string that came from server
+    }
+
+    const sendToHeadset = (data) => {
+      websocket.send(data);
+    }
+
+  </script>
+
+</html>
+
+
