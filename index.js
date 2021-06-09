@@ -34,7 +34,8 @@ const sendMessageToClients = (message, gameId) => {
 }
 
 const sendWsMessage = (ws, message, type) => {
-  ws.send(`{type: ${type}, message: ${message}}`)
+  const payload = {'type': type, 'message': message}
+  ws.send(JSON.stringify(payload))
 }
 
 const handleGameConnection = (ws) => {
